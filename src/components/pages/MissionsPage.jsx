@@ -230,7 +230,6 @@ function MissionCard({ mission, score, done, note, index, onOpenChat }) {
 
 /* ─── Chat Modal ───────────────────────────────────────────────────────────── */
 
-const IS_DEV = import.meta.env.DEV
 const API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY
 
 function MissionChatModal({ mission, onClose }) {
@@ -265,9 +264,8 @@ function MissionChatModal({ mission, onClose }) {
         'Content-Type': 'application/json',
         'anthropic-version': '2023-06-01',
         'anthropic-dangerous-direct-browser-access': 'true',
+        'x-api-key': API_KEY,
       }
-      // In dev the Vite proxy forwards the key; in prod the Netlify function injects it server-side
-      if (IS_DEV) headers['x-api-key'] = API_KEY
 
       const res = await fetch('/api/claude/v1/messages', {
         method: 'POST',

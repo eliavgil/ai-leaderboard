@@ -1,5 +1,3 @@
-
-
-העלה את הפרויקט ל-GitHub. אתחל git repository, צור קובץ `.gitignore` מתאים ל-Vite שמוציא את תיקיית `node_modules` ואת קובץ `.env`, ותן לי הוראות להעלות ל-GitHub.
-
----
+cd Desktop/ai-leaderboard
+git remote add origin https://github.com/eliavgil/ai-leaderboard.git
+git push -u origin main
