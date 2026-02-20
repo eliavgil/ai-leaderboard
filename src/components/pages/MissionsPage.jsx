@@ -231,6 +231,7 @@ function MissionCard({ mission, score, done, note, index, onOpenChat }) {
 /* ─── Chat Modal ───────────────────────────────────────────────────────────── */
 
 const API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY
+console.log('[ChatBot] API_KEY:', API_KEY ? `${API_KEY.slice(0, 10)}...` : 'MISSING')
 
 function MissionChatModal({ mission, onClose }) {
   const [messages, setMessages] = useState([])
