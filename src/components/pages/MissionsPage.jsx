@@ -3,130 +3,152 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { CheckCircle, Clock, ExternalLink, Bot, X, Send, Loader2 } from 'lucide-react'
 import { cn } from '../../utils/cn'
 
-const MISSIONS = [
+/* ── משימות (ניקוד נמוך) ─────────────────────────────────────────────────── */
+const TASKS = [
   {
-    id: 1,
-    title: 'משימת פאדלט — כנס בינה מלאכותית ירושלים',
-    description:
-      'השתתפות בכנס חינוך ובינה מלאכותית בירושלים והעלאת המלצות על דוכנים לפדלט משותף.',
+    id: 't1',
+    title: 'משימה 1 — פאדלט',
+    description: 'השתתפות בכנס חינוך ובינה מלאכותית בירושלים והעלאת המלצות על דוכנים לפדלט משותף.',
     deadline: 'לפני המפגש הראשון',
-    maxLabel: 'נמוך',
+    maxLabel: 'ניקוד נמוך',
     link: 'https://padlet.com/eliavgil/padlet-92whdpbavm10cbhj',
     linkLabel: 'לפדלט',
     docLink: 'https://padlet.com/eliavgil/padlet-92whdpbavm10cbhj',
-    colKey: 'משימה פאדלט',
-    systemPrompt:
-      'אתה עוזר לימודי לקורס AI למורים. המשימה הנוכחית היא "משימת פאדלט": המשתתפים השתתפו בכנס חינוך ובינה מלאכותית בירושלים ועליהם להעלות המלצות על דוכנים לפדלט משותף. עזור לתלמידים עם שאלות על אופן ההעלאה לפדלט, מה לכלול בהמלצה, ואיך לנסח אותה. ענה בעברית, בצורה ידידותית וקצרה.',
+    colKey: 'משימה 1 פאדלט',
+    systemPrompt: 'אתה עוזר לימודי לקורס AI למורים. המשימה: השתתפות בכנס AI בירושלים והעלאת המלצות על דוכנים לפדלט משותף. עזור עם שאלות על אופן ההעלאה לפדלט, מה לכלול בהמלצה ואיך לנסח אותה. ענה בעברית, קצר וידידותי.',
   },
   {
-    id: 2,
-    title: 'מייל ארגוני, פרומפט ועבודה עם נוטבוק',
-    description:
-      "כניסה לג'ימיני עם המייל הארגוני, כתיבת פרומפט מעולה, ויצירת מחברת NotebookLM עם סקירה קולית, בוחן ואינפוגרפיקה.",
-    deadline: '16.9',
-    maxLabel: '4 נקודות',
+    id: 't2',
+    title: 'משימה 2 — תיג וואטסאפ',
+    description: 'הצטרפות לקבוצת הוואטסאפ של הקורס וקבלת תג משתתף.',
+    deadline: 'תחילת הקורס',
+    maxLabel: 'ניקוד נמוך',
     link: null,
-    docLink: 'https://docs.google.com/document/d/1BUzYwKdDKIgw_YR_3o5y8aCgF50wImQClzIWcnWhzPw/edit',
-    colKey: 'משימה מייל ארגוני, פרומפט ועבודה עם נוטבוק',
-    systemPrompt:
-      'אתה עוזר לימודי לקורס AI למורים. המשימה הנוכחית: כניסה לג\'ימיני עם מייל ארגוני, כתיבת פרומפט מעולה, ויצירת מחברת NotebookLM הכוללת סקירה קולית, בוחן ואינפוגרפיקה. עזור לתלמידים עם שאלות על: איך להיכנס לג\'ימיני עם מייל ארגוני, מה מאפיין פרומפט טוב, ואיך להשתמש ב-NotebookLM ליצירת תוכן. ענה בעברית, בצורה ברורה ומעשית.',
-  },
-  {
-    id: 3,
-    title: 'מבחן Studywise ומחקר NotebookLM — תיק עבודות 1',
-    description:
-      'מחקר על יתרונות AI למורים, הכנת חומר לימוד ב-NotebookLM הכולל לפחות 3 סוגי מידע, ויצירת מבחן של 10 שאלות ב-Studywise.',
-    deadline: '25.2.2026 עד 22:00',
-    maxLabel: '30 נקודות',
-    link: null,
+    linkLabel: null,
     docLink: null,
-    colKey: 'משימה מבחן סטאדיוויז מחקר נוטבוק',
-    systemPrompt:
-      'אתה עוזר לימודי לקורס AI למורים. המשימה הנוכחית (תיק עבודות 1): מחקר על יתרונות AI למורים, הכנת חומר לימוד ב-NotebookLM הכולל לפחות 3 סוגי מידע שונים (טקסט, וידאו, אודיו וכד\'), ויצירת מבחן של 10 שאלות ב-Studywise. עזור לתלמידים עם שאלות על: איך לבנות חומר לימוד איכותי, מה נחשב "3 סוגי מידע", ואיך ליצור מבחן ב-Studywise. ענה בעברית, צעד אחר צעד.',
+    colKey: 'משימה 2 תיג וואצפ',
+    systemPrompt: 'אתה עוזר לימודי לקורס AI למורים. המשימה: הצטרפות לקבוצת הוואטסאפ של הקורס וקבלת תג. עזור עם שאלות על ההצטרפות. ענה בעברית, קצר וידידותי.',
   },
 ]
 
+/* ── עבודות (ניקוד גבוה, נכנסות לתיק עבודות) ────────────────────────────── */
+const WORKS = [
+  {
+    id: 'w1',
+    title: 'עבודה 1 — נוטבוק וסטאדיוויז',
+    description: 'מחקר על יתרונות AI למורים, הכנת חומר לימוד ב-NotebookLM הכולל לפחות 3 סוגי מידע, ויצירת מבחן של 10 שאלות ב-Studywise.',
+    deadline: '25.2.2026 עד 22:00',
+    maxLabel: '30 נקודות',
+    link: null,
+    linkLabel: null,
+    docLink: 'https://docs.google.com/document/d/1BUzYwKdDKIgw_YR_3o5y8aCgF50wImQClzIWcnWhzPw/edit?usp=drive_link',
+    colKey: 'עבודה 1 נוטבוק וסטאדיוויז',
+    systemPrompt: 'אתה עוזר לימודי לקורס AI למורים. העבודה הנוכחית (תיק עבודות 1): מחקר על יתרונות AI למורים, הכנת חומר לימוד ב-NotebookLM הכולל לפחות 3 סוגי מידע שונים (טקסט, וידאו, אודיו וכד\'), ויצירת מבחן של 10 שאלות ב-Studywise. עזור עם שאלות על: בניית חומר לימוד איכותי, מה נחשב "3 סוגי מידע", ואיך ליצור מבחן ב-Studywise. ענה בעברית, צעד אחר צעד.',
+  },
+]
+
+const isRelevantCol = (col) =>
+  (col.includes('משימה') || col.includes('עבודה')) &&
+  !col.includes('מפגש') &&
+  !col.includes('הערה')
+
 export default function MissionsPage({ user, students }) {
-  const student = students.find(s => s.name === user.name) || user
-  const breakdown = student.taskBreakdown || []
+  const student   = students.find(s => s.name === user.name) || user
+  const breakdown = (student.taskBreakdown || []).filter(t => isRelevantCol(t.col))
   const [chatMission, setChatMission] = useState(null)
 
-  const submittedCount = MISSIONS.filter(m => {
-    const task = breakdown.find(t => t.col === m.colKey)
-    return task && task.score > 0
-  }).length
+  const all          = [...TASKS, ...WORKS]
+  const doneCount    = all.filter(m => (breakdown.find(t => t.col === m.colKey)?.score ?? 0) > 0).length
+  const tasksDone    = TASKS.filter(m => (breakdown.find(t => t.col === m.colKey)?.score ?? 0) > 0).length
+  const worksDone    = WORKS.filter(m => (breakdown.find(t => t.col === m.colKey)?.score ?? 0) > 0).length
+
+  const renderCards = (list, offset = 0) =>
+    list.map((mission, i) => {
+      const task  = breakdown.find(t => t.col === mission.colKey)
+      const score = task?.score ?? 0
+      return (
+        <MissionCard
+          key={mission.id}
+          mission={mission}
+          score={score}
+          done={score > 0}
+          note={task?.note}
+          index={offset + i}
+          onOpenChat={() => setChatMission(mission)}
+        />
+      )
+    })
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8" dir="rtl">
 
       {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -16 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="mb-6"
-      >
+      <motion.div initial={{ opacity: 0, y: -16 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
         <h1 className="text-xl font-bold text-slate-100 flex items-center gap-2">
-          <span>🎯</span> משימות
+          <span>🎯</span> משימות ועבודות
         </h1>
-        <p className="text-slate-500 text-sm mt-1">
-          {submittedCount} מתוך {MISSIONS.length} משימות הוגשו
-        </p>
+        <p className="text-slate-500 text-sm mt-1">{doneCount} מתוך {all.length} הוגשו</p>
       </motion.div>
 
-      {/* Overall progress bar */}
+      {/* Overall progress */}
       <motion.div
         initial={{ opacity: 0, scale: 0.97 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ delay: 0.1 }}
-        className="glass rounded-2xl p-5 border border-slate-700/40 mb-6"
+        className="glass rounded-2xl p-5 border border-slate-700/40 mb-7"
       >
         <div className="flex items-center justify-between mb-3">
           <span className="text-slate-300 font-semibold text-sm">התקדמות כוללת</span>
           <span className="font-orbitron font-bold text-cyan-400 text-sm">
-            {Math.round((submittedCount / MISSIONS.length) * 100)}%
+            {Math.round((doneCount / all.length) * 100)}%
           </span>
         </div>
         <div className="h-2.5 bg-slate-800 rounded-full overflow-hidden">
           <motion.div
             className="h-full bg-gradient-to-l from-cyan-400 to-violet-500 rounded-full"
             initial={{ width: 0 }}
-            animate={{ width: `${(submittedCount / MISSIONS.length) * 100}%` }}
+            animate={{ width: `${(doneCount / all.length) * 100}%` }}
             transition={{ duration: 1, delay: 0.3, ease: 'easeOut' }}
           />
         </div>
         <div className="flex justify-between mt-2 text-xs text-slate-600">
-          <span>{MISSIONS.length - submittedCount} לא הוגשו</span>
-          <span>{submittedCount} הוגשו</span>
+          <span>{all.length - doneCount} לא הוגשו</span>
+          <span>{doneCount} הוגשו</span>
         </div>
       </motion.div>
 
-      {/* Mission cards */}
-      <div className="space-y-3">
-        {MISSIONS.map((mission, i) => {
-          const task  = breakdown.find(t => t.col === mission.colKey)
-          const score = task?.score ?? 0
-          const done  = score > 0
-          return (
-            <MissionCard
-              key={mission.id}
-              mission={mission}
-              score={score}
-              done={done}
-              note={task?.note}
-              index={i}
-              onOpenChat={() => setChatMission(mission)}
-            />
-          )
-        })}
-      </div>
+      {/* ── משימות ─────────────────────────────────────────── */}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.15 }}>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 inline-block" />
+            משימות
+          </h2>
+          <span className="text-xs text-slate-600">{tasksDone}/{TASKS.length} הוגשו</span>
+        </div>
+        <div className="space-y-3 mb-7">
+          {renderCards(TASKS, 0)}
+        </div>
+      </motion.div>
+
+      {/* ── עבודות ─────────────────────────────────────────── */}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }}>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-violet-400 inline-block" />
+            עבודות — תיק עבודות
+          </h2>
+          <span className="text-xs text-slate-600">{worksDone}/{WORKS.length} הוגשו</span>
+        </div>
+        <div className="space-y-3">
+          {renderCards(WORKS, TASKS.length)}
+        </div>
+      </motion.div>
 
       {/* Chatbot modal */}
       <AnimatePresence>
         {chatMission && (
-          <MissionChatModal
-            mission={chatMission}
-            onClose={() => setChatMission(null)}
-          />
+          <MissionChatModal mission={chatMission} onClose={() => setChatMission(null)} />
         )}
       </AnimatePresence>
     </div>

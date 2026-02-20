@@ -50,17 +50,14 @@ export default function LoginScreen({ onLogin, error }) {
         <div className="glass rounded-3xl p-8 shadow-2xl border border-slate-700/50">
           {/* Logo */}
           <div className="text-center mb-8">
-            <motion.div
-              className="text-6xl mb-4 inline-block select-none"
+            <motion.img
+              src="/Logo_promptheus.png"
+              alt="PromPtheus.Ai"
+              className="h-20 w-auto object-contain mx-auto mb-4"
               animate={{ y: [0, -6, 0] }}
               transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-            >
-              🤖
-            </motion.div>
-            <h1 className="font-orbitron font-black text-2xl text-white neon-text tracking-wider">
-              AI Arena
-            </h1>
-            <p className="text-slate-400 text-sm mt-1 font-medium">
+            />
+            <p className="text-slate-400 text-sm font-medium">
               לוח תוצאות מתקדם
             </p>
           </div>

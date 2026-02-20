@@ -7,8 +7,10 @@ export default function LoadingScreen() {
       <div className="fixed top-1/3 left-1/4 w-80 h-80 bg-cyan-500/6 rounded-full blur-3xl pointer-events-none" />
       <div className="fixed bottom-1/3 right-1/4 w-80 h-80 bg-violet-500/6 rounded-full blur-3xl pointer-events-none" />
 
+      <img src="/Logo_promptheus.png" alt="PromPtheus.Ai" className="h-16 w-auto object-contain mb-2" />
+
       <motion.div
-        className="relative w-20 h-20"
+        className="relative w-16 h-16"
         animate={{ rotate: 360 }}
         transition={{ duration: 2.5, repeat: Infinity, ease: 'linear' }}
       >

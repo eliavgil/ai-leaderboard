@@ -12,6 +12,7 @@ import ForumPage from './components/pages/ForumPage'
 import LogisticsPage from './components/pages/LogisticsPage'
 import MissionsPage from './components/pages/MissionsPage'
 import WhatsAppDashboard from './components/pages/WhatsAppDashboard'
+import OKRPage from './components/pages/OKRPage'
 
 // ─── constants ────────────────────────────────────────────────────────────────
 const ADMIN_CODE     = '7'
@@ -160,11 +161,14 @@ export default function App() {
             {page === 'missions'    && (
               <MissionsPage user={user} students={students} />
             )}
+            {page === 'okr'         && (
+              <OKRPage adminMode={adminMode} />
+            )}
             {page === 'forum'       && (
               <ForumPage user={user} />
             )}
             {page === 'logistics'   && (
-              <LogisticsPage />
+              <LogisticsPage adminMode={adminMode} />
             )}
             {page === 'whatsapp'    && (
               <WhatsAppDashboard students={students} adminMode={adminMode} />

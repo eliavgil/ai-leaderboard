@@ -6,10 +6,13 @@ import {
 } from 'lucide-react'
 import { cn } from '../utils/cn'
 
+const OkrIcon = () => <span className="text-base leading-none shrink-0">🎯</span>
+
 const NAV = [
   { id: 'dashboard',  label: 'לוח אישי',          icon: LayoutDashboard },
   { id: 'leaderboard',label: 'טבלת ניקוד',         icon: Trophy          },
   { id: 'missions',   label: 'משימות',              icon: Target          },
+  { id: 'okr',        label: 'OKR',                 icon: OkrIcon         },
   { id: 'forum',      label: 'פורום',               icon: MessageCircle   },
   { id: 'logistics',  label: 'לו"ז ולוגיסטיקה',    icon: Calendar        },
 ]
@@ -42,15 +45,15 @@ export default function Sidebar({
         <span className="text-2xl shrink-0">🤖</span>
         <AnimatePresence>
           {expanded && (
-            <motion.span
+            <motion.img
+              src="/Logo_promptheus.png"
+              alt="PromPtheus.Ai"
               initial={{ opacity: 0, x: -8 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -8 }}
               transition={{ duration: 0.18 }}
-              className="font-orbitron font-black text-sm text-cyan-400 neon-text whitespace-nowrap"
-            >
-              AI Arena
-            </motion.span>
+              className="h-10 w-auto object-contain"
+            />
           )}
         </AnimatePresence>
 
