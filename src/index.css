@@ -1,0 +1,89 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body {
+    font-family: 'Heebo', sans-serif;
+    background-color: #020617;
+    color: #e2e8f0;
+    direction: rtl;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #22d3ee22 transparent;
+  }
+  *::-webkit-scrollbar { width: 4px; height: 4px; }
+  *::-webkit-scrollbar-track { background: transparent; }
+  *::-webkit-scrollbar-thumb {
+    background: #22d3ee33;
+    border-radius: 4px;
+  }
+}
+
+@layer components {
+  .glass {
+    @apply bg-slate-900/60 backdrop-blur-xl border border-slate-700/50;
+  }
+  .glass-sm {
+    @apply bg-slate-900/40 backdrop-blur-md border border-slate-700/30;
+  }
+  .btn-primary {
+    @apply px-5 py-2.5 rounded-xl font-semibold text-sm
+           bg-cyan-500/20 border border-cyan-400/40 text-cyan-300
+           hover:bg-cyan-500/30 hover:border-cyan-400/60
+           active:scale-95 transition-all duration-200;
+  }
+  .btn-ghost {
+    @apply px-3 py-2 rounded-lg text-sm text-slate-500
+           hover:text-slate-300 hover:bg-white/5
+           active:scale-95 transition-all duration-200;
+  }
+  .neon-text {
+    text-shadow: 0 0 10px #22d3ee, 0 0 30px #22d3ee55;
+  }
+  .neon-gold-text {
+    text-shadow: 0 0 10px #fbbf24, 0 0 30px #fbbf2455;
+  }
+  .glow-gold {
+    box-shadow: 0 0 20px rgba(251,191,36,0.35), 0 0 60px rgba(251,191,36,0.15), inset 0 0 20px rgba(251,191,36,0.05);
+  }
+  .glow-silver {
+    box-shadow: 0 0 20px rgba(203,213,225,0.25), 0 0 60px rgba(203,213,225,0.08);
+  }
+  .glow-bronze {
+    box-shadow: 0 0 20px rgba(180,100,30,0.25), 0 0 60px rgba(180,100,30,0.08);
+  }
+  .glow-cyan {
+    box-shadow: 0 0 15px rgba(34,211,238,0.4), 0 0 40px rgba(34,211,238,0.15);
+  }
+  .rank-highlight {
+    background: linear-gradient(135deg, rgba(34,211,238,0.08), transparent);
+    border-color: rgba(34,211,238,0.25) !important;
+  }
+}
+
+@layer utilities {
+  .bg-grid {
+    background-image:
+      linear-gradient(rgba(34,211,238,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(34,211,238,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+}
+
+/* Scanline overlay */
+.scanline::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    transparent 50%,
+    rgba(0, 0, 0, 0.03) 50%
+  );
+  background-size: 100% 4px;
+  pointer-events: none;
+  z-index: 9998;
+}
