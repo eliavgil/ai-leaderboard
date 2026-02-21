@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   LayoutDashboard, Trophy, Target, MessageCircle,
@@ -9,24 +10,81 @@ import { cn } from '../utils/cn'
 const OkrIcon = () => <span className="text-base leading-none shrink-0">🎯</span>
 
 const NAV = [
-  { id: 'dashboard',  label: 'לוח אישי',          icon: LayoutDashboard },
-  { id: 'leaderboard',label: 'טבלת ניקוד',         icon: Trophy          },
-  { id: 'missions',   label: 'משימות',              icon: Target          },
-  { id: 'okr',        label: 'OKR',                 icon: OkrIcon         },
-  { id: 'forum',      label: 'פורום',               icon: MessageCircle   },
-  { id: 'logistics',  label: 'לו"ז',                icon: Calendar        },
+  { id: 'dashboard',  label: 'לוח אישי',   icon: LayoutDashboard },
+  { id: 'leaderboard',label: 'טבלת ניקוד',  icon: Trophy          },
+  { id: 'missions',   label: 'משימות',       icon: Target          },
+  { id: 'okr',        label: 'OKR',          icon: OkrIcon         },
+  { id: 'forum',      label: 'פורום',        icon: MessageCircle   },
+  { id: 'logistics',  label: 'לו"ז',         icon: Calendar        },
 ]
 
-const ADMIN_NAV = { id: 'whatsapp', label: 'WhatsApp Bulk', icon: MessageSquare }
+const ADMIN_NAV = { id: 'whatsapp', label: 'WhatsApp', icon: MessageSquare }
 
 export default function Sidebar({
   page, setPage, user, adminMode, onAdminClick, onLogout, onRefresh, lastUpdated,
   expanded, setExpanded,
 }) {
-  const W = expanded ? 220 : 64
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768)
 
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', handler)
+    return () => window.removeEventListener('resize', handler)
+  }, [])
+
+  const W     = expanded ? 220 : 64
   const items = adminMode ? [...NAV, ADMIN_NAV] : NAV
 
+  /* ── Mobile: bottom nav bar ──────────────────────────────────────────────── */
+  if (isMobile) {
+    return (
+      <nav
+        className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around px-1 py-1"
+        style={{
+          background: 'rgba(2,6,23,0.97)',
+          borderTop: '1px solid rgba(51,65,85,0.5)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+        }}
+      >
+        {items.map(item => {
+          const active = page === item.id
+          return (
+            <button
+              key={item.id}
+              onClick={() => setPage(item.id)}
+              title={item.label}
+              className={cn(
+                'flex flex-col items-center justify-center gap-0.5 px-3 py-2 rounded-xl transition-all duration-200 relative',
+                active ? 'text-cyan-300' : 'text-slate-500 hover:text-slate-300',
+                item.id === 'whatsapp' && !active && 'text-emerald-600',
+                item.id === 'whatsapp' &&  active && 'text-emerald-300',
+              )}
+            >
+              <item.icon size={20} />
+              {active && (
+                <motion.div
+                  layoutId="activeMobileNav"
+                  className="absolute inset-0 rounded-xl bg-cyan-500/10 border border-cyan-400/20"
+                />
+              )}
+            </button>
+          )
+        })}
+
+        {/* Logout */}
+        <button
+          onClick={onLogout}
+          title="התנתק"
+          className="flex flex-col items-center justify-center px-3 py-2 rounded-xl text-slate-600 hover:text-rose-400 transition-colors"
+        >
+          <LogOut size={20} />
+        </button>
+      </nav>
+    )
+  }
+
+  /* ── Desktop: sidebar ────────────────────────────────────────────────────── */
   return (
     <motion.aside
       animate={{ width: W }}
@@ -142,7 +200,6 @@ export default function Sidebar({
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   className="text-xs text-slate-400 truncate font-medium"
-                  style={{ direction: 'rtl' }}
                 >
                   {adminMode ? user.name : user.animalName}
                 </motion.span>
@@ -181,7 +238,6 @@ function SideBtn({ icon: Icon, label, expanded, onClick, className = '' }) {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
             className="whitespace-nowrap text-xs"
-            style={{ direction: 'rtl' }}
           >
             {label}
           </motion.span>

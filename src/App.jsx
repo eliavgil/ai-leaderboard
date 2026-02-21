@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useLeaderboardData } from './hooks/useLeaderboardData'
 import LoadingScreen from './components/LoadingScreen'
@@ -52,6 +52,13 @@ export default function App() {
   const [adminMode, setAdminMode]     = useState(false)
   const [showAdminModal, setShowAdminModal] = useState(false)
   const [sidebarExpanded, setSidebarExpanded] = useState(true)
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768)
+
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768)
+    window.addEventListener('resize', handler)
+    return () => window.removeEventListener('resize', handler)
+  }, [])
 
   // ── auth ──────────────────────────────────────────────────────────────────
   const handleLogin = (identifier) => {
@@ -137,10 +144,10 @@ export default function App() {
         setExpanded={setSidebarExpanded}
       />
 
-      {/* Main content — margin tracks sidebar width */}
+      {/* Main content — margin tracks sidebar width (desktop only) */}
       <motion.main
-        className="min-h-screen overflow-x-hidden relative z-10"
-        animate={{ marginRight: sidebarExpanded ? 220 : 64 }}
+        className={`min-h-screen overflow-x-hidden relative z-10${isMobile ? ' pb-16' : ''}`}
+        animate={{ marginRight: isMobile ? 0 : (sidebarExpanded ? 220 : 64) }}
         transition={{ duration: 0.25, ease: 'easeInOut' }}
       >
         <AnimatePresence mode="wait">
