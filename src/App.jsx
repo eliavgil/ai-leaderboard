@@ -140,7 +140,7 @@ export default function App() {
       {/* Main content — margin tracks sidebar width */}
       <motion.main
         className="min-h-screen overflow-x-hidden relative z-10"
-        animate={{ marginLeft: sidebarExpanded ? 220 : 64 }}
+        animate={{ marginRight: sidebarExpanded ? 220 : 64 }}
         transition={{ duration: 0.25, ease: 'easeInOut' }}
       >
         <AnimatePresence mode="wait">

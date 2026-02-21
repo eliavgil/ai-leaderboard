@@ -1,7 +1,14 @@
-import { useState, useRef, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { CheckCircle, Clock, ExternalLink, Bot, X, Send, Loader2 } from 'lucide-react'
+import { useState } from 'react'
+import { motion } from 'framer-motion'
+import { CheckCircle, Clock, ExternalLink, Bot } from 'lucide-react'
 import { cn } from '../../utils/cn'
+
+/* ── Gemini helper ───────────────────────────────────────────────────────── */
+const PROMPT_PREFIX = 'אני תלמיד בנבחרת ה-AI, קיבלתי את המשימה הזו: '
+const PROMPT_SUFFIX = '. אני רוצה שתעזור לי לעשות עבודה מצוינת. מה עוד אתה צריך לדעת בשביל לעזור לי בצורה הכי טובה?'
+
+const buildGeminiPrompt = (instructions) =>
+  PROMPT_PREFIX + instructions + PROMPT_SUFFIX
 
 /* ── משימות (ניקוד נמוך) ─────────────────────────────────────────────────── */
 const TASKS = [
@@ -15,19 +22,44 @@ const TASKS = [
     linkLabel: 'לפדלט',
     docLink: 'https://padlet.com/eliavgil/padlet-92whdpbavm10cbhj',
     colKey: 'משימה 1 פאדלט',
-    systemPrompt: 'אתה עוזר לימודי לקורס AI למורים. המשימה: השתתפות בכנס AI בירושלים והעלאת המלצות על דוכנים לפדלט משותף. עזור עם שאלות על אופן ההעלאה לפדלט, מה לכלול בהמלצה ואיך לנסח אותה. ענה בעברית, קצר וידידותי.',
+    geminiInstructions: 'השתתפות בכנס חינוך ובינה מלאכותית בירושלים והעלאת המלצות על דוכנים לפדלט משותף.',
   },
   {
     id: 't2',
-    title: 'משימה 2 — תיג וואטסאפ',
-    description: 'הצטרפות לקבוצת הוואטסאפ של הקורס וקבלת תג משתתף.',
+    title: 'משימה 2 — תיוג וואטסאפ',
+    description: 'הוספת תיוג אישי בקבוצת וואטסאפ',
     deadline: 'תחילת הקורס',
     maxLabel: 'ניקוד נמוך',
     link: null,
     linkLabel: null,
     docLink: null,
     colKey: 'משימה 2 תיג וואצפ',
-    systemPrompt: 'אתה עוזר לימודי לקורס AI למורים. המשימה: הצטרפות לקבוצת הוואטסאפ של הקורס וקבלת תג. עזור עם שאלות על ההצטרפות. ענה בעברית, קצר וידידותי.',
+    geminiInstructions: 'הוספת תיוג אישי בקבוצת וואטסאפ.',
+  },
+  {
+    id: 't3b',
+    title: 'משימה 3 — מייל ארגוני, פרומפט, נוטבוק',
+    description: "כניסה לג'ימיני עם המייל הארגוני, כתיבת פרומפט מעולה שמלמד לעבוד עם נוטבוק, יצירת מחברת נוטבוק עם סקירה קולית ובוחן ואינפוגרפיקה על נושא לבחירה.",
+    deadline: 'ניקוד נמוך',
+    maxLabel: 'ניקוד נמוך',
+    link: 'https://docs.google.com/document/d/1JZaSryPktAYAEseZiVCRUZHW1Q2w7e8OPVD_W0WUdcM/edit?usp=sharing',
+    linkLabel: 'פתח משימה',
+    docLink: 'https://docs.google.com/document/d/1JZaSryPktAYAEseZiVCRUZHW1Q2w7e8OPVD_W0WUdcM/edit?usp=sharing',
+    colKey: 'משימה 3 מייל ארגוני, פרומפט, נוטבוק',
+    geminiInstructions: "כניסה לג'ימיני עם המייל הארגוני, כתיבת פרומפט מעולה שמלמד לעבוד עם נוטבוק, יצירת מחברת נוטבוק עם סקירה קולית ובוחן ואינפוגרפיקה על נושא לבחירה.",
+  },
+  {
+    id: 't4',
+    title: 'משימה 4 — מפגש סטאדיוויז ונוטבוק 17.2',
+    description: 'השתתפות פעילה במפגש Studywise ו-NotebookLM ביום 17.2.',
+    deadline: '17.2.2026',
+    maxLabel: 'ניקוד נמוך',
+    link: null,
+    linkLabel: null,
+    docLink: null,
+    colKey: 'משימה 4 מפגש סטאדיוויז, נוטבוק 17.2',
+    geminiInstructions: 'השתתפות פעילה במפגש Studywise ו-NotebookLM ביום 17.2.',
+    hidden: true,
   },
 ]
 
@@ -43,27 +75,26 @@ const WORKS = [
     linkLabel: null,
     docLink: 'https://docs.google.com/document/d/1BUzYwKdDKIgw_YR_3o5y8aCgF50wImQClzIWcnWhzPw/edit?usp=drive_link',
     colKey: 'עבודה 1 נוטבוק וסטאדיוויז',
-    systemPrompt: 'אתה עוזר לימודי לקורס AI למורים. העבודה הנוכחית (תיק עבודות 1): מחקר על יתרונות AI למורים, הכנת חומר לימוד ב-NotebookLM הכולל לפחות 3 סוגי מידע שונים (טקסט, וידאו, אודיו וכד\'), ויצירת מבחן של 10 שאלות ב-Studywise. עזור עם שאלות על: בניית חומר לימוד איכותי, מה נחשב "3 סוגי מידע", ואיך ליצור מבחן ב-Studywise. ענה בעברית, צעד אחר צעד.',
+    geminiInstructions: 'מחקר על יתרונות AI למורים, הכנת חומר לימוד ב-נוטבוק הכולל לפחות 3 סוגי מידע, יצירת מבחן של 10 שאלות ב-סטאדיוויז, שליחת קישורים. מועד הגשה 25.2.2026 עד 22:00.',
   },
 ]
 
+// הצג רק עמודות שמכילות "משימה" או "עבודה", ודחה עמודות הערה בלבד
 const isRelevantCol = (col) =>
   (col.includes('משימה') || col.includes('עבודה')) &&
-  !col.includes('מפגש') &&
   !col.includes('הערה')
 
 export default function MissionsPage({ user, students }) {
   const student   = students.find(s => s.name === user.name) || user
   const breakdown = (student.taskBreakdown || []).filter(t => isRelevantCol(t.col))
-  const [chatMission, setChatMission] = useState(null)
 
-  const all          = [...TASKS, ...WORKS]
-  const doneCount    = all.filter(m => (breakdown.find(t => t.col === m.colKey)?.score ?? 0) > 0).length
-  const tasksDone    = TASKS.filter(m => (breakdown.find(t => t.col === m.colKey)?.score ?? 0) > 0).length
-  const worksDone    = WORKS.filter(m => (breakdown.find(t => t.col === m.colKey)?.score ?? 0) > 0).length
+  const all       = [...TASKS, ...WORKS]
+  const doneCount = all.filter(m => (breakdown.find(t => t.col === m.colKey)?.score ?? 0) > 0).length
+  const tasksDone = TASKS.filter(m => (breakdown.find(t => t.col === m.colKey)?.score ?? 0) > 0).length
+  const worksDone = WORKS.filter(m => (breakdown.find(t => t.col === m.colKey)?.score ?? 0) > 0).length
 
   const renderCards = (list, offset = 0) =>
-    list.map((mission, i) => {
+    list.filter(m => !m.hidden).map((mission, i) => {
       const task  = breakdown.find(t => t.col === mission.colKey)
       const score = task?.score ?? 0
       return (
@@ -74,7 +105,7 @@ export default function MissionsPage({ user, students }) {
           done={score > 0}
           note={task?.note}
           index={offset + i}
-          onOpenChat={() => setChatMission(mission)}
+          geminiPrompt={buildGeminiPrompt(mission.geminiInstructions)}
         />
       )
     })
@@ -144,20 +175,22 @@ export default function MissionsPage({ user, students }) {
           {renderCards(WORKS, TASKS.length)}
         </div>
       </motion.div>
-
-      {/* Chatbot modal */}
-      <AnimatePresence>
-        {chatMission && (
-          <MissionChatModal mission={chatMission} onClose={() => setChatMission(null)} />
-        )}
-      </AnimatePresence>
     </div>
   )
 }
 
 /* ─── Mission Card ─────────────────────────────────────────────────────────── */
 
-function MissionCard({ mission, score, done, note, index, onOpenChat }) {
+function MissionCard({ mission, score, done, note, index, geminiPrompt }) {
+  const [copied, setCopied] = useState(false)
+
+  const handleGeminiHelp = async () => {
+    await navigator.clipboard.writeText(geminiPrompt)
+    window.open('https://gemini.google.com/app', '_blank')
+    setCopied(true)
+    setTimeout(() => setCopied(false), 3000)
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, x: 12 }}
@@ -233,210 +266,19 @@ function MissionCard({ mission, score, done, note, index, onOpenChat }) {
               </a>
             )}
 
-            {/* AI Help chatbot */}
+            {/* Gemini help */}
             <button
-              onClick={onOpenChat}
+              onClick={handleGeminiHelp}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg
                          bg-cyan-500/10 border border-cyan-400/25 text-cyan-300
                          text-xs font-medium hover:bg-cyan-500/20 transition-colors"
             >
               <Bot size={11} />
-              עזרה 🤖
+              {copied ? 'הפרומפט הועתק — הדבק אותו בג\'ימיני' : 'עזרה 🤖'}
             </button>
           </div>
         </div>
       </div>
     </motion.div>
-  )
-}
-
-/* ─── Chat Modal ───────────────────────────────────────────────────────────── */
-
-const API_KEY = import.meta.env.VITE_ANTHROPIC_API_KEY
-console.log('[ChatBot] API_KEY:', API_KEY ? `${API_KEY.slice(0, 10)}...` : 'MISSING')
-
-function MissionChatModal({ mission, onClose }) {
-  const [messages, setMessages] = useState([])
-  const [input, setInput]       = useState('')
-  const [loading, setLoading]   = useState(false)
-  const [error, setError]       = useState(null)
-  const bottomRef = useRef(null)
-  const inputRef  = useRef(null)
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, loading])
-
-  useEffect(() => {
-    inputRef.current?.focus()
-  }, [])
-
-  const sendMessage = async () => {
-    const text = input.trim()
-    if (!text || loading) return
-
-    const userMsg = { role: 'user', content: text }
-    const updated = [...messages, userMsg]
-    setMessages(updated)
-    setInput('')
-    setLoading(true)
-    setError(null)
-
-    try {
-      const headers = {
-        'Content-Type': 'application/json',
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-        'x-api-key': API_KEY,
-      }
-
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1024,
-          system: mission.systemPrompt,
-          messages: updated,
-        }),
-      })
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error(err?.error?.message || `שגיאה ${res.status}`)
-      }
-
-      const data = await res.json()
-      const reply = data.content?.[0]?.text ?? '...'
-      setMessages(prev => [...prev, { role: 'assistant', content: reply }])
-    } catch (e) {
-      setError(e.message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleKey = e => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() }
-  }
-
-  return (
-    <>
-      {/* Backdrop */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={onClose}
-        className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50"
-      />
-
-      {/* Modal */}
-      <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 pointer-events-none">
-        <motion.div
-          initial={{ opacity: 0, y: 40, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 40, scale: 0.95 }}
-          transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-          className="pointer-events-auto w-full max-w-lg"
-          dir="rtl"
-          onClick={e => e.stopPropagation()}
-        >
-          <div className="glass rounded-2xl border border-cyan-400/20 overflow-hidden shadow-2xl flex flex-col"
-               style={{ height: '75vh', maxHeight: '600px' }}>
-
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800/60 shrink-0">
-              <div className="flex items-center gap-2">
-                <Bot size={15} className="text-cyan-400" />
-                <div>
-                  <p className="text-sm font-semibold text-slate-200">עזרה — {mission.title}</p>
-                  <p className="text-xs text-slate-600">AI לעזרה במשימה</p>
-                </div>
-              </div>
-              <button
-                onClick={onClose}
-                className="text-slate-600 hover:text-slate-300 transition-colors"
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
-              {messages.length === 0 && (
-                <div className="text-center py-8">
-                  <p className="text-3xl mb-2">🤖</p>
-                  <p className="text-sm text-slate-500">שאל אותי כל שאלה על המשימה</p>
-                </div>
-              )}
-
-              {messages.map((msg, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className={cn(
-                    'flex',
-                    msg.role === 'user' ? 'justify-start' : 'justify-end',
-                  )}
-                >
-                  <div className={cn(
-                    'max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap',
-                    msg.role === 'user'
-                      ? 'bg-slate-800/70 border border-slate-700/40 text-slate-200 rounded-tr-sm'
-                      : 'bg-cyan-500/12 border border-cyan-400/20 text-slate-200 rounded-tl-sm',
-                  )}>
-                    {msg.content}
-                  </div>
-                </motion.div>
-              ))}
-
-              {loading && (
-                <div className="flex justify-end">
-                  <div className="bg-cyan-500/10 border border-cyan-400/20 rounded-2xl rounded-tl-sm px-4 py-2.5">
-                    <Loader2 size={14} className="text-cyan-400 animate-spin" />
-                  </div>
-                </div>
-              )}
-
-              {error && (
-                <p className="text-xs text-red-400 text-center px-4">
-                  שגיאה: {error}
-                </p>
-              )}
-
-              <div ref={bottomRef} />
-            </div>
-
-            {/* Input */}
-            <div className="px-4 py-3 border-t border-slate-800/60 shrink-0">
-              <div className="flex items-end gap-2">
-                <textarea
-                  ref={inputRef}
-                  value={input}
-                  onChange={e => setInput(e.target.value)}
-                  onKeyDown={handleKey}
-                  placeholder="כתוב שאלה... (Enter לשליחה)"
-                  rows={2}
-                  className="flex-1 bg-slate-800/60 border border-slate-700/40 rounded-xl px-3 py-2
-                             text-sm text-slate-200 placeholder-slate-600
-                             focus:outline-none focus:border-cyan-400/40 resize-none leading-relaxed"
-                />
-                <button
-                  onClick={sendMessage}
-                  disabled={!input.trim() || loading}
-                  className="p-2.5 rounded-xl bg-cyan-500/15 border border-cyan-400/30 text-cyan-300
-                             hover:bg-cyan-500/25 disabled:opacity-30 disabled:cursor-not-allowed
-                             transition-colors shrink-0"
-                >
-                  <Send size={15} />
-                </button>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-    </>
   )
 }

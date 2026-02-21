@@ -14,7 +14,7 @@ const NAV = [
   { id: 'missions',   label: 'משימות',              icon: Target          },
   { id: 'okr',        label: 'OKR',                 icon: OkrIcon         },
   { id: 'forum',      label: 'פורום',               icon: MessageCircle   },
-  { id: 'logistics',  label: 'לו"ז ולוגיסטיקה',    icon: Calendar        },
+  { id: 'logistics',  label: 'לו"ז',                icon: Calendar        },
 ]
 
 const ADMIN_NAV = { id: 'whatsapp', label: 'WhatsApp Bulk', icon: MessageSquare }
@@ -31,38 +31,29 @@ export default function Sidebar({
     <motion.aside
       animate={{ width: W }}
       transition={{ duration: 0.25, ease: 'easeInOut' }}
-      className="fixed top-0 bottom-0 left-0 z-40 flex flex-col overflow-hidden"
+      className="fixed top-0 bottom-0 right-0 z-40 flex flex-col overflow-hidden"
       style={{
-        direction: 'ltr',
+        direction: 'rtl',
         background: 'rgba(2,6,23,0.9)',
-        borderRight: '1px solid rgba(51,65,85,0.5)',
+        borderLeft: '1px solid rgba(51,65,85,0.5)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
       }}
     >
       {/* Logo */}
-      <div className="flex items-center gap-3 px-4 py-5 border-b border-slate-800/60">
-        <span className="text-2xl shrink-0">🤖</span>
-        <AnimatePresence>
-          {expanded && (
-            <motion.img
-              src="/Logo_promptheus.png"
-              alt="PromPtheus.Ai"
-              initial={{ opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -8 }}
-              transition={{ duration: 0.18 }}
-              className="h-10 w-auto object-contain"
-            />
-          )}
-        </AnimatePresence>
+      <div className="flex items-center justify-between px-4 py-4 border-b border-slate-800/60">
+        <img
+          src="/Logo_promptheus.png"
+          alt="PromPtheus.Ai"
+          className="h-14 w-auto object-contain"
+        />
 
         {/* Collapse toggle */}
         <button
           onClick={() => setExpanded(v => !v)}
           className="ml-auto text-slate-600 hover:text-slate-300 transition-colors shrink-0"
         >
-          {expanded ? <ChevronLeft size={15} /> : <ChevronRight size={15} />}
+          {expanded ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
         </button>
       </div>
 
@@ -93,7 +84,6 @@ export default function Sidebar({
                     exit={{ opacity: 0, x: -6 }}
                     transition={{ duration: 0.15 }}
                     className="whitespace-nowrap"
-                    style={{ direction: 'rtl' }}
                   >
                     {item.label}
                   </motion.span>
@@ -104,7 +94,7 @@ export default function Sidebar({
               {active && (
                 <motion.div
                   layoutId="activeNav"
-                  className="absolute right-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-cyan-400 rounded-full"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-cyan-400 rounded-full"
                 />
               )}
             </button>
