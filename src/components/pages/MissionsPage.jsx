@@ -74,7 +74,7 @@ const WORKS = [
     link: null,
     linkLabel: null,
     docLink: 'https://docs.google.com/document/d/1BUzYwKdDKIgw_YR_3o5y8aCgF50wImQClzIWcnWhzPw/edit?usp=drive_link',
-    colKey: 'עבודה 1 נוטבוק וסטאדיוויז',
+    colKey: 'עבודה 1 - Notebook & SW',
     geminiInstructions: 'מחקר על יתרונות AI למורים, הכנת חומר לימוד ב-נוטבוק הכולל לפחות 3 סוגי מידע, יצירת מבחן של 10 שאלות ב-סטאדיוויז, שליחת קישורים. מועד הגשה 25.2.2026 עד 22:00.',
   },
 ]
@@ -88,10 +88,31 @@ export default function MissionsPage({ user, students }) {
   const student   = students.find(s => s.name === user.name) || user
   const breakdown = (student.taskBreakdown || []).filter(t => isRelevantCol(t.col))
 
-  const all       = [...TASKS, ...WORKS]
+  // Detect "עבודה" columns from the sheet that aren't in the hardcoded WORKS list.
+  // Use students[0] as the column reference so new columns are detected even if
+  // the current user's object is stale.
+  const allTaskCols = students[0]?.taskBreakdown?.map(t => t.col) || []
+  const knownWorkKeys = new Set(WORKS.map(w => w.colKey))
+  const dynamicWorks = allTaskCols
+    .filter(col => col.includes('עבודה') && !knownWorkKeys.has(col))
+    .map((col, i) => ({
+      id: `w_dyn_${i}`,
+      title: col,
+      description: 'עבודה חדשה — פרטים יתווספו בקרוב.',
+      deadline: '',
+      maxLabel: '',
+      link: null,
+      linkLabel: null,
+      docLink: null,
+      colKey: col,
+      geminiInstructions: col,
+    }))
+  const allWorks = [...WORKS, ...dynamicWorks]
+
+  const all       = [...TASKS, ...allWorks]
   const doneCount = all.filter(m => (breakdown.find(t => t.col === m.colKey)?.score ?? 0) > 0).length
   const tasksDone = TASKS.filter(m => (breakdown.find(t => t.col === m.colKey)?.score ?? 0) > 0).length
-  const worksDone = WORKS.filter(m => (breakdown.find(t => t.col === m.colKey)?.score ?? 0) > 0).length
+  const worksDone = allWorks.filter(m => (breakdown.find(t => t.col === m.colKey)?.score ?? 0) > 0).length
 
   const renderCards = (list, offset = 0) =>
     list.filter(m => !m.hidden).map((mission, i) => {
@@ -169,10 +190,10 @@ export default function MissionsPage({ user, students }) {
             <span className="w-1.5 h-1.5 rounded-full bg-violet-400 inline-block" />
             עבודות — תיק עבודות
           </h2>
-          <span className="text-xs text-slate-600">{worksDone}/{WORKS.length} הוגשו</span>
+          <span className="text-xs text-slate-600">{worksDone}/{allWorks.length} הוגשו</span>
         </div>
         <div className="space-y-3">
-          {renderCards(WORKS, TASKS.length)}
+          {renderCards(allWorks, TASKS.length)}
         </div>
       </motion.div>
     </div>
