@@ -43,7 +43,7 @@ const pageVariants = {
 
 // ─── component ────────────────────────────────────────────────────────────────
 export default function App() {
-  const { students, loading, error, lastUpdated, refetch, authenticate } =
+  const { students, colLinks, loading, error, lastUpdated, refetch, authenticate } =
     useLeaderboardData()
 
   const [user, setUser]               = useState(null)
@@ -166,7 +166,7 @@ export default function App() {
               <PublicLeaderboard students={students} currentUser={user} adminMode={adminMode} />
             )}
             {page === 'missions'    && (
-              <MissionsPage user={user} students={students} />
+              <MissionsPage user={user} students={students} colLinks={colLinks} />
             )}
             {page === 'okr'         && (
               <OKRPage adminMode={adminMode} />

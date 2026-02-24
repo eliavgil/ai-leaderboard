@@ -77,6 +77,18 @@ const WORKS = [
     colKey: 'עבודה 1 - Notebook & SW',
     geminiInstructions: 'מחקר על יתרונות AI למורים, הכנת חומר לימוד ב-נוטבוק הכולל לפחות 3 סוגי מידע, יצירת מבחן של 10 שאלות ב-סטאדיוויז, שליחת קישורים. מועד הגשה 25.2.2026 עד 22:00.',
   },
+  {
+    id: 'w2',
+    title: 'עבודה 2 — בייס אפליקציה כיתתית',
+    description: 'בניית אפליקציה ייעודית לכיתה ב-Base שמענה על צרכים אמיתיים. עד 5 פרומפטים. הגשה: לינק לאפליקציה פעילה, הסבר לתלמיד, והצדקת המוצר.',
+    deadline: '2.3.26',
+    maxLabel: '30 נקודות',
+    link: null,
+    linkLabel: null,
+    docLink: 'https://docs.google.com/document/d/1na0EtJ_BVceZ_qYseIAtoXyZNiI8nvpou8GkJ105KrQ/edit?tab=t.0',
+    colKey: 'עבודה 2 - בייס אפליקציה כיתתית',
+    geminiInstructions: 'בניית אפליקציה ייעודית לכיתה ב-Base. עד 5 פרומפטים. להגיש: לינק לאפליקציה פעילה, פסקת הסבר לתלמיד, הצדקת מוצר. 50% ניקוד טכני, 50% הצבעת חברי הנבחרת. מועד הגשה 2.3.26.',
+  },
 ]
 
 // הצג רק עמודות שמכילות "משימה" או "עבודה", ודחה עמודות הערה בלבד
@@ -84,7 +96,7 @@ const isRelevantCol = (col) =>
   (col.includes('משימה') || col.includes('עבודה')) &&
   !col.includes('הערה')
 
-export default function MissionsPage({ user, students }) {
+export default function MissionsPage({ user, students, colLinks = {} }) {
   const student   = students.find(s => s.name === user.name) || user
   const breakdown = (student.taskBreakdown || []).filter(t => isRelevantCol(t.col))
 
@@ -103,7 +115,7 @@ export default function MissionsPage({ user, students }) {
       maxLabel: '',
       link: null,
       linkLabel: null,
-      docLink: null,
+      docLink: colLinks[col] || null,
       colKey: col,
       geminiInstructions: col,
     }))

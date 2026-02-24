@@ -6,6 +6,8 @@ const SCORES_URL =
   'https://docs.google.com/spreadsheets/d/1TTuD5vvmE9BhNMDqwsNDXsLEgjUVm54nkqMiFaw_8zY/export?format=csv'
 const CREDS_URL =
   'https://docs.google.com/spreadsheets/d/17WWVtK7hKwt2-LW8AA4Gw7ouiHkXoFThyB8bdi9te8s/export?format=csv'
+const XLSX_URL =
+  'https://docs.google.com/spreadsheets/d/1TTuD5vvmE9BhNMDqwsNDXsLEgjUVm54nkqMiFaw_8zY/export?format=xlsx'
 
 function parseCSV(url) {
   return new Promise((resolve, reject) => {
@@ -38,10 +40,129 @@ function cleanStr(s = '') {
   return s.toString().trim().replace(/[\u200B-\u200D\uFEFF\u202A-\u202E]/g, '')
 }
 
+// ── XLSX hyperlink extraction (no external dependencies) ──────────────────────
+
+/** Convert Excel column letter(s) to 0-based index. A→0, B→1, Z→25, AA→26 */
+function colLetterToIndex(letters) {
+  let idx = 0
+  for (const c of letters.toUpperCase()) {
+    idx = idx * 26 + (c.charCodeAt(0) - 64)
+  }
+  return idx - 1
+}
+
+/**
+ * Minimal ZIP reader: extracts named files from a ZIP ArrayBuffer.
+ * Returns { filename: textContent } for each requested file.
+ * Uses the browser's native DecompressionStream (deflate-raw) — no libraries.
+ */
+async function extractZipFiles(buffer, targets) {
+  const bytes = new Uint8Array(buffer)
+  const view  = new DataView(buffer)
+  const dec   = new TextDecoder('utf-8')
+  const result = {}
+
+  // Find End of Central Directory signature (PK\x05\x06 = 0x06054b50)
+  let eocd = -1
+  for (let i = bytes.length - 22; i >= Math.max(0, bytes.length - 65558); i--) {
+    if (view.getUint32(i, true) === 0x06054b50) { eocd = i; break }
+  }
+  if (eocd < 0) return result
+
+  const cdCount  = view.getUint16(eocd + 10, true)
+  const cdOffset = view.getUint32(eocd + 16, true)
+  let pos = cdOffset
+
+  for (let i = 0; i < cdCount; i++) {
+    if (view.getUint32(pos, true) !== 0x02014b50) break   // central dir entry sig
+
+    const fnLen    = view.getUint16(pos + 28, true)
+    const extraLen = view.getUint16(pos + 30, true)
+    const cmtLen   = view.getUint16(pos + 32, true)
+    const localOff = view.getUint32(pos + 42, true)
+    const fname    = dec.decode(bytes.subarray(pos + 46, pos + 46 + fnLen))
+    pos += 46 + fnLen + extraLen + cmtLen
+
+    if (!targets.includes(fname)) continue
+
+    // Read local file header to find actual data offset
+    const localFnLen  = view.getUint16(localOff + 26, true)
+    const localExtLen = view.getUint16(localOff + 28, true)
+    const method      = view.getUint16(localOff + 8, true)
+    const compSize    = view.getUint32(localOff + 18, true)
+    const dataStart   = localOff + 30 + localFnLen + localExtLen
+    const compData    = bytes.subarray(dataStart, dataStart + compSize)
+
+    let text
+    if (method === 0) {
+      text = dec.decode(compData)
+    } else {
+      // Deflate (method 8) — use native DecompressionStream
+      const ds     = new DecompressionStream('deflate-raw')
+      const writer = ds.writable.getWriter()
+      writer.write(compData)
+      writer.close()
+      const out = await new Response(ds.readable).arrayBuffer()
+      text = dec.decode(out)
+    }
+    result[fname] = text
+  }
+  return result
+}
+
+/**
+ * Fetch the XLSX file and extract hyperlinks from row-1 column headers.
+ * Returns a map of { columnHeaderText: url } using the CSV headers array
+ * to resolve column letter → header name.
+ */
+async function fetchXlsxLinks(csvHeaders) {
+  try {
+    const resp = await fetch(XLSX_URL)
+    if (!resp.ok) return {}
+    const buf = await resp.arrayBuffer()
+
+    const files = await extractZipFiles(buf, [
+      'xl/worksheets/_rels/sheet1.xml.rels',
+      'xl/worksheets/sheet1.xml',
+    ])
+
+    const relsXml  = files['xl/worksheets/_rels/sheet1.xml.rels'] || ''
+    const sheetXml = files['xl/worksheets/sheet1.xml'] || ''
+
+    // rId → URL
+    const ridToUrl = {}
+    for (const m of relsXml.matchAll(/Id="(rId\d+)"[^>]*Target="([^"]+)"/g)) {
+      ridToUrl[m[1]] = m[2]
+    }
+
+    // hyperlinks section of sheet1.xml: ref="X1" r:id="rIdN" (either attribute order)
+    const hlBlock = sheetXml.match(/<hyperlinks>([\s\S]*?)<\/hyperlinks>/)
+    if (!hlBlock) return {}
+
+    const colLinks = {}
+    const pattern = /ref="([A-Z]+)1"[^>]*r:id="(rId\d+)"|r:id="(rId\d+)"[^>]*ref="([A-Z]+)1"/g
+    for (const m of hlBlock[1].matchAll(pattern)) {
+      const letter = m[1] || m[4]
+      const rid    = m[2] || m[3]
+      const url    = ridToUrl[rid]
+      if (!letter || !url) continue
+      const idx    = colLetterToIndex(letter)
+      const header = csvHeaders[idx]
+      if (header) colLinks[header] = url
+    }
+    return colLinks
+  } catch {
+    return {}
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 export function useLeaderboardData() {
-  const [students, setStudents] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [students, setStudents]     = useState([])
+  const [colLinks, setColLinks]     = useState({})
+  const [loading, setLoading]       = useState(true)
+  const [error, setError]           = useState(null)
   const [lastUpdated, setLastUpdated] = useState(null)
 
   const fetchData = useCallback(async () => {
@@ -65,6 +186,9 @@ export function useLeaderboardData() {
 
       const scoresHeaders = Object.keys(scoresRows[0])
       const credsHeaders = credsRows.length ? Object.keys(credsRows[0]) : []
+
+      // Fetch xlsx hyperlinks in parallel (non-blocking — failures return {})
+      fetchXlsxLinks(scoresHeaders).then(setColLinks)
 
       // --- identify score-sheet columns ---
       const nameCol  = findCol(scoresHeaders, 'שם')
@@ -201,5 +325,5 @@ export function useLeaderboardData() {
     )
   }
 
-  return { students, loading, error, lastUpdated, refetch: fetchData, authenticate }
+  return { students, colLinks, loading, error, lastUpdated, refetch: fetchData, authenticate }
 }
