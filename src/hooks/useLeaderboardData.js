@@ -13,9 +13,34 @@ function parseCSV(url) {
   return new Promise((resolve, reject) => {
     Papa.parse(url, {
       download: true,
-      header: true,
+      header: false,          // handle duplicate headers manually
       skipEmptyLines: true,
-      complete: resolve,
+      complete: (raw) => {
+        const rows = raw.data
+        if (!rows.length) { resolve({ data: [], meta: { fields: [] } }); return }
+
+        // First row = headers; keep only the FIRST occurrence of each duplicate
+        const rawHeaders = rows[0].map(h => (h || '').trim())
+        const uniqueHeaders = []
+        const seen = {}
+        rawHeaders.forEach((h, i) => {
+          if (!seen[h]) {
+            seen[h] = true
+            uniqueHeaders.push({ name: h, index: i })
+          }
+          // subsequent duplicates are silently ignored
+        })
+
+        const data = rows.slice(1).map(row => {
+          const obj = {}
+          uniqueHeaders.forEach(({ name, index }) => {
+            obj[name] = row[index] !== undefined ? row[index] : ''
+          })
+          return obj
+        })
+
+        resolve({ data, meta: { fields: uniqueHeaders.map(h => h.name) } })
+      },
       error: reject,
     })
   })
@@ -35,9 +60,12 @@ function parseNum(val) {
   return isNaN(n) ? 0 : n
 }
 
-/** Strip hidden unicode direction/zero-width marks that can appear in Hebrew text */
+/** Strip hidden unicode direction/zero-width marks; normalize apostrophe variants */
 function cleanStr(s = '') {
-  return s.toString().trim().replace(/[\u200B-\u200D\uFEFF\u202A-\u202E]/g, '')
+  return s.toString()
+    .trim()
+    .replace(/[\u200B-\u200D\uFEFF\u202A-\u202E]/g, '')
+    .replace(/[\u2018\u2019\u02BC\u05F3`]/g, "'")   // ׳ / ' / ' → plain apostrophe
 }
 
 // ── XLSX hyperlink extraction (no external dependencies) ──────────────────────
@@ -79,6 +107,9 @@ async function extractZipFiles(buffer, targets) {
     const fnLen    = view.getUint16(pos + 28, true)
     const extraLen = view.getUint16(pos + 30, true)
     const cmtLen   = view.getUint16(pos + 32, true)
+    // Read compSize from the central directory — always correct, even when the
+    // local header has 0 because the data-descriptor flag (bit 3) is set.
+    const cdCompSize = view.getUint32(pos + 20, true)
     const localOff = view.getUint32(pos + 42, true)
     const fname    = dec.decode(bytes.subarray(pos + 46, pos + 46 + fnLen))
     pos += 46 + fnLen + extraLen + cmtLen
@@ -89,7 +120,9 @@ async function extractZipFiles(buffer, targets) {
     const localFnLen  = view.getUint16(localOff + 26, true)
     const localExtLen = view.getUint16(localOff + 28, true)
     const method      = view.getUint16(localOff + 8, true)
-    const compSize    = view.getUint32(localOff + 18, true)
+    const localCompSize = view.getUint32(localOff + 18, true)
+    // Prefer central-directory size; fall back to local header (for stored files)
+    const compSize    = cdCompSize || localCompSize
     const dataStart   = localOff + 30 + localFnLen + localExtLen
     const compData    = bytes.subarray(dataStart, dataStart + compSize)
 
@@ -98,10 +131,11 @@ async function extractZipFiles(buffer, targets) {
       text = dec.decode(compData)
     } else {
       // Deflate (method 8) — use native DecompressionStream
+      // Must await write + close so the stream receives all data before reading
       const ds     = new DecompressionStream('deflate-raw')
       const writer = ds.writable.getWriter()
-      writer.write(compData)
-      writer.close()
+      await writer.write(compData)
+      await writer.close()
       const out = await new Response(ds.readable).arrayBuffer()
       text = dec.decode(out)
     }
@@ -159,10 +193,11 @@ async function fetchXlsxLinks(csvHeaders) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function useLeaderboardData() {
-  const [students, setStudents]     = useState([])
-  const [colLinks, setColLinks]     = useState({})
-  const [loading, setLoading]       = useState(true)
-  const [error, setError]           = useState(null)
+  const [students, setStudents]       = useState([])
+  const [colLinks, setColLinks]       = useState({})
+  const [rawCredsMap, setRawCredsMap] = useState({})
+  const [loading, setLoading]         = useState(true)
+  const [error, setError]             = useState(null)
   const [lastUpdated, setLastUpdated] = useState(null)
 
   const fetchData = useCallback(async () => {
@@ -187,9 +222,6 @@ export function useLeaderboardData() {
       const scoresHeaders = Object.keys(scoresRows[0])
       const credsHeaders = credsRows.length ? Object.keys(credsRows[0]) : []
 
-      // Fetch xlsx hyperlinks in parallel (non-blocking — failures return {})
-      fetchXlsxLinks(scoresHeaders).then(setColLinks)
-
       // --- identify score-sheet columns ---
       const nameCol  = findCol(scoresHeaders, 'שם')
       const scoreCol = findCol(scoresHeaders, 'סך', 'ניקוד', 'total', 'score')
@@ -201,6 +233,22 @@ export function useLeaderboardData() {
         if (commentCols.has(h)) return false
         return true
       })
+
+      // Extract URL row: a row where the name column contains "קישורים".
+      // In that row, put the task URL in the matching task column.
+      // This row is removed from the student list.
+      const urlRowIdx = nameCol
+        ? scoresRows.findIndex(r => cleanStr(r[nameCol]).includes('קישורים'))
+        : -1
+      if (urlRowIdx !== -1) {
+        const urlRow = scoresRows.splice(urlRowIdx, 1)[0]
+        const links = {}
+        taskCols.forEach(col => {
+          const val = cleanStr(urlRow[col] || '')
+          if (val.startsWith('http')) links[col] = val
+        })
+        setColLinks(links)
+      }
 
       let weeklyCol = null
       for (let i = taskCols.length - 1; i >= 0; i--) {
@@ -216,17 +264,19 @@ export function useLeaderboardData() {
       const credEmailCol = findCol(credsHeaders, 'email', 'mail', 'אימייל')
       const credPhoneCol = findCol(credsHeaders, 'טלפון', 'phone', 'נייד', 'mobile', 'tel', 'whatsapp')
 
-      // Build credentials map  (lowercase name → {id, email, phone})
+      // Build credentials map  (lowercase name → {name, id, email, phone})
       const credsMap = {}
       credsRows.forEach(row => {
         const rawName = credNameCol ? cleanStr(row[credNameCol]) : ''
         if (!rawName) return
         credsMap[rawName.toLowerCase()] = {
+          name:  rawName,
           id:    cleanStr(credIdCol    ? row[credIdCol]    : ''),
           email: cleanStr(credEmailCol ? row[credEmailCol] : '').toLowerCase(),
           phone: cleanStr(credPhoneCol ? row[credPhoneCol] : ''),
         }
       })
+      setRawCredsMap(credsMap)
 
       // Build animal map from sorted names
       const allNames = scoresRows
@@ -310,19 +360,47 @@ export function useLeaderboardData() {
 
   /**
    * Case-insensitive, Hebrew-safe auth.
-   * Matches by ID, email, or (fallback) real name.
+   * 1. Matches in students[] by ID, email, or name.
+   * 2. Falls back to rawCredsMap (handles students not yet in scores sheet,
+   *    or name-mismatch between sheets).
    */
   function authenticate(identifier) {
     const raw = cleanStr(identifier)
     if (!raw) return null
     const lower = raw.toLowerCase()
-    return (
-      students.find(s =>
-        (s.id    && cleanStr(s.id).toLowerCase()    === lower) ||
-        (s.email && cleanStr(s.email).toLowerCase() === lower) ||
-        (s.name  && cleanStr(s.name).toLowerCase()  === lower)
-      ) || null
+
+    // Primary: look in processed students
+    const found = students.find(s =>
+      (s.id    && cleanStr(s.id).toLowerCase()    === lower) ||
+      (s.email && cleanStr(s.email).toLowerCase() === lower) ||
+      (s.name  && cleanStr(s.name).toLowerCase()  === lower)
     )
+    if (found) return found
+
+    // Fallback: look in credentials map (student exists in creds sheet but not scores)
+    const credEntry = Object.values(rawCredsMap).find(c =>
+      (c.id    && cleanStr(c.id).toLowerCase()    === lower) ||
+      (c.email && cleanStr(c.email).toLowerCase() === lower) ||
+      (c.name  && cleanStr(c.name).toLowerCase()  === lower)
+    )
+    if (credEntry) {
+      return {
+        name: credEntry.name,
+        emoji: '👤',
+        animalName: 'Student',
+        id: credEntry.id,
+        email: credEntry.email,
+        phone: credEntry.phone,
+        score: 0,
+        rank: 0,
+        weeklyScore: 0,
+        isWeeklyChampion: false,
+        taskBreakdown: [],
+        badges: [],
+      }
+    }
+
+    return null
   }
 
   return { students, colLinks, loading, error, lastUpdated, refetch: fetchData, authenticate }
